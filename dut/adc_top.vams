@@ -1,0 +1,138 @@
+`timescale 1ns/1ps
+`include "disciplines.vams"
+
+// Jerarquia ADC SAR en Verilog-AMS.
+// Las conexiones internas son electrical; la frontera con las redes wreal
+// de test_fixture se resuelve mediante los boundary elements de Questa ADMS.
+module adc_top (
+    clk, vin, vout, cmp_out, dac_out,
+    sar_logic_b7, sar_logic_b6, sar_logic_b5, sar_logic_b4,
+    sar_logic_b3, sar_logic_b2, sar_logic_b1, sar_logic_b0,
+    sar_logic_sample_clk, sar_logic_register_clk,
+    sarr_o7, sarr_o6, sarr_o5, sarr_o4,
+    sarr_o3, sarr_o2, sarr_o1, sarr_o0
+);
+
+    input  clk, vin;
+    output vout, cmp_out, dac_out;
+
+    output sar_logic_b7, sar_logic_b6, sar_logic_b5, sar_logic_b4;
+    output sar_logic_b3, sar_logic_b2, sar_logic_b1, sar_logic_b0;
+    output sar_logic_sample_clk, sar_logic_register_clk;
+    output sarr_o7, sarr_o6, sarr_o5, sarr_o4;
+    output sarr_o3, sarr_o2, sarr_o1, sarr_o0;
+
+    // puertos ADC
+    electrical clk, vin, vout, cmp_out, dac_out;
+    electrical sar_logic_b7, sar_logic_b6, sar_logic_b5, sar_logic_b4;
+    electrical sar_logic_b3, sar_logic_b2, sar_logic_b1, sar_logic_b0;
+    electrical sar_logic_sample_clk, sar_logic_register_clk;
+    electrical sarr_o7, sarr_o6, sarr_o5, sarr_o4;
+    electrical sarr_o3, sarr_o2, sarr_o1, sarr_o0;
+
+    // señales internas DUT
+    electrical sh_vout;
+    electrical vdd, vss;
+    electrical sarr_clk;
+
+    parameter real VDD = 1.8;
+    parameter real VSS = 0.0;
+    parameter real EOC_THRESHOLD = 0.9;
+    parameter real EOC_TR = 1p;
+    parameter real EOC_TF = 1p;
+
+    real sarr_eoc_level;
+
+    // fuentes analógicas
+    analog begin
+        V(vdd) <+ VDD;
+        V(vss) <+ VSS;
+
+        @(initial_step or cross(V(sar_logic_register_clk) - EOC_THRESHOLD))
+            sarr_eoc_level = (V(sar_logic_register_clk) > EOC_THRESHOLD)
+                           ? VSS : VDD;
+
+        V(sarr_clk) <+ transition(sarr_eoc_level, 0, EOC_TR, EOC_TF);
+    end
+
+    SampleHold u_sample_hold (
+        .clk  (sar_logic_sample_clk),
+        .vin  (vin),
+        .vout (sh_vout)
+    );
+
+    Comparador u_comparador (
+        .InS (sh_vout),
+        .InD (dac_out),
+        .Out (cmp_out),
+        .clk (clk)
+    );
+
+    DAC_Capacitivo u_dac_feedback (
+        .b0   (sar_logic_b0),
+        .b1   (sar_logic_b1),
+        .b2   (sar_logic_b2),
+        .b3   (sar_logic_b3),
+        .b4   (sar_logic_b4),
+        .b5   (sar_logic_b5),
+        .b6   (sar_logic_b6),
+        .b7   (sar_logic_b7),
+        .Aout (dac_out),
+        .vdd  (vdd),
+        .vss  (vss)
+    );
+
+    SARLogic u_sar_logic (
+        .In           (cmp_out),
+        .CLK          (clk),
+        .VDD          (vdd),
+        .VSS          (vss),
+        .b7           (sar_logic_b7),
+        .b6           (sar_logic_b6),
+        .b5           (sar_logic_b5),
+        .b4           (sar_logic_b4),
+        .b3           (sar_logic_b3),
+        .b2           (sar_logic_b2),
+        .b1           (sar_logic_b1),
+        .b0           (sar_logic_b0),
+        .sample_clk   (sar_logic_sample_clk),
+        .register_clk (sar_logic_register_clk)
+    );
+
+    SARR u_sarr (
+        .b7  (sar_logic_b7),
+        .b6  (sar_logic_b6),
+        .b5  (sar_logic_b5),
+        .b4  (sar_logic_b4),
+        .b3  (sar_logic_b3),
+        .b2  (sar_logic_b2),
+        .b1  (sar_logic_b1),
+        .b0  (sar_logic_b0),
+        .EOC (sarr_clk),
+        .VDD (vdd),
+        .VSS (vss),
+        .o7  (sarr_o7),
+        .o6  (sarr_o6),
+        .o5  (sarr_o5),
+        .o4  (sarr_o4),
+        .o3  (sarr_o3),
+        .o2  (sarr_o2),
+        .o1  (sarr_o1),
+        .o0  (sarr_o0)
+    );
+
+    DAC_Capacitivo u_dac_output (
+        .b0   (sarr_o0),
+        .b1   (sarr_o1),
+        .b2   (sarr_o2),
+        .b3   (sarr_o3),
+        .b4   (sarr_o4),
+        .b5   (sarr_o5),
+        .b6   (sarr_o6),
+        .b7   (sarr_o7),
+        .Aout (vout),
+        .vdd  (vdd),
+        .vss  (vss)
+    );
+
+endmodule

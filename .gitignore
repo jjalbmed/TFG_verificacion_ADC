@@ -1,0 +1,43 @@
+transcript
+
+# Bibliotecas compiladas de Questa / Questa ADMS
+**/work/
+DefaultVlogALib/
+
+# Bases de datos, ondas y cobertura de simulación
+*.wdb
+*.wlf
+*.ucdb
+*.qdb
+*.qpg
+*.qtl
+*.jwdb*
+.jwdb*
+
+# Resultados intermedios de Eldo / Questa ADMS
+*.id
+*.chi
+*.reuse
+*.part.reuse
+*.conv
+*.ecg
+*.vif
+*.vstf
+*.errm.log
+vasim.errm.log
+swave_error.log
+transcript_ms
+
+# Informes y preprocesados generados localmente
++incdir+tb
+code_coverage.txt
+informe_cobertura.txt
+fcover_report.txt
+
+# Configuración y documentación propietaria de Siemens
+modelsim.ini
+questa_adms_user.pdf
+valog_help.txt
+
+# Configuración local del editor
+.vscode/
